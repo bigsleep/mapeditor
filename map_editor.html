@@ -3,15 +3,18 @@
 <meta charset="UTF-8">
 <title>Map Editor</title>
 <script src="elm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.11.4/vue.min.js"></script>
 </head>
 
 <body>
+
 <div id="main"></div>
 
 <script type="text/javascript">
 var div = document.getElementById('main');
-var main = Elm.embed(Elm.MapEditor, div, {});
+var main = Elm.embed(Elm.MapEditor, div, {selectedColor:0});
 </script>
+
+<style>
+</style>
 </body>
-
-
