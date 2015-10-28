@@ -4,17 +4,47 @@
 <title>Map Editor</title>
 <script src="elm.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.11.4/vue.min.js"></script>
+
+<!-- Latest compiled and minified JavaScript -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" integrity="sha384-aUGj/X2zp5rLCbBxumKTCw2Z50WgIr1vs/PFN4praOTvYXWlVyh2UtNUU0KAUhAX" crossorigin="anonymous">
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script>
 </head>
 
 <body>
 
 <div id="main"></div>
+<div id="a"></div>
+<div id="b"></div>
 
 <script type="text/javascript">
-var div = document.getElementById('main');
-var main = Elm.embed(Elm.MapEditor, div, {selectedColor:0});
+Elm.embed(Elm.MapEditor, document.getElementById('main'), {selectedColor:0});
 </script>
 
 <style>
+.control-container {
+    display: flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+    width: 200px;
+}
+
+.control-group {
+    margin: auto;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.control-group > * {
+    margin: auto;
+}
+
+.palette-element {
+    display: table-cell;
+}
 </style>
 </body>

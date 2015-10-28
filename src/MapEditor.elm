@@ -9,6 +9,7 @@ import Signal exposing (Signal)
 
 -- elm-html
 import Html exposing (Html)
+import Html.Attributes as Html
 import Html.Events
 
 -- start-app
@@ -17,7 +18,7 @@ import StartApp.Simple as StartApp
 main = StartApp.start { model = 0, view = view, update = curry fst }
 
 tileSize : Int
-tileSize = 60
+tileSize = 20
 
 paletteColors : List Color
 paletteColors =
@@ -32,12 +33,12 @@ paletteColors =
 
 paletteView : Signal.Address Int -> Html
 paletteView address =
-    let toHtml i form = Html.div [Html.Events.onClick address i] [Html.fromElement <| Collage.collage tileSize tileSize [form]]
+    let toHtml i form = Html.div [classPaletteElement, Html.Events.onClick address i] [Html.fromElement <| Collage.collage tileSize tileSize [form]]
     in Html.div [] <| List.indexedMap toHtml palette
 
 selectedColorView : Int -> Html
 selectedColorView i =
-    Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.red
+    Html.div [] << flip (::) [] << Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.red
 
 palette : List Collage.Form
 palette =
@@ -57,4 +58,12 @@ getFromList xs i default =
 
 view : Signal.Address Int -> Int -> Html
 view address selection =
-    Html.div [] [paletteView address, Html.hr [] [], selectedColorView selection]
+    let group label a =
+            Html.div [classControlGroup] [Html.label [] [Html.text label], a]
+    in Html.div [classControlContainer] [group "tiles" <| paletteView address, group "selected" <| selectedColorView selection]
+
+
+classControlContainer = Html.class "control-container"
+classControlGroup = Html.class "control-group"
+classControls = Html.class "controls"
+classPaletteElement = Html.class "palette-element"
