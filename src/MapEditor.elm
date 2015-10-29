@@ -17,12 +17,16 @@ import Html.Attributes as Html
 import Html.Events
 
 -- start-app
-import StartApp.Simple as StartApp
+import StartApp
+
+-- elm-effects
+import Effects exposing (Effects)
 
 main =
     let initialMap = Array.repeat mapHeight <| Array.repeat mapWidth 0
         initial = { selected = 0, map = initialMap }
-    in StartApp.start { model = initial, view = view, update = update }
+        app = StartApp.start { init = (initial, Effects.none), update = update, view = view, inputs = [Signal.map (MapMouseDown) mapMouseInput] }
+    in app.html
 
 mapWidth = 16
 mapHeight = 16
@@ -73,7 +77,7 @@ view address {selected, map} =
 
 mapView : Array (Array Int) -> Signal.Address AppInput -> Html
 mapView map address =
-    let (ox, oy) = ((-w + tileSize) // 2, (h + tileSize) // 2)
+    let (ox, oy) = ((-w + tileSize) // 2, (h - tileSize) // 2)
         w = mapWidth * tileSize
         h = mapHeight * tileSize
         toForm i j c =
@@ -84,12 +88,12 @@ mapView map address =
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-    in Html.div [classMapView, Html.id "map-view", onMapMouseInput address] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
+    in Html.div [classMapView, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
-update : AppInput -> AppState -> AppState
+update : AppInput -> AppState -> (AppState, Effects AppInput)
 update input {selected, map} = 
     case input of
-        SelectColor c -> { selected = c, map = map }
+        SelectColor c -> ({ selected = c, map = map }, Effects.none)
         MapMouseDown (x, y) ->
             let x' = x // tileSize
                 y' = y // tileSize
@@ -99,8 +103,8 @@ update input {selected, map} =
                         Just col -> Array.set y' (Array.set x' selected col) map
                         Nothing -> map
                 out = Debug.log "" { selected = selected, map = map' }
-            in out
-        MapMouseUp (x, y) -> Debug.log ("mouse up ") { selected = selected, map = map }
+            in (out, Effects.none)
+        MapMouseUp (x, y) -> Debug.log ("mouse up ") ({ selected = selected, map = map }, Effects.none)
 
 type alias AppState =
     { selected : Int
@@ -112,13 +116,7 @@ type AppInput =
     MapMouseDown (Int, Int) |
     MapMouseUp (Int, Int)
 
---port mapMouseInput : Signal (Int, Int)
-{--}
-onMapMouseInput : Signal.Address AppInput -> Html.Attribute
-onMapMouseInput address =
-    let decoder = Json.Decode.object2 (,) ("clientX" := Json.Decode.int) ("clientY" := Json.Decode.int)
-    in Html.Events.on "click" decoder (\(x, y) -> always (Signal.message address (MapMouseDown (x, y))) ())
---}
+port mapMouseInput : Signal (Int, Int)
 
 classAppLayout = Html.class "app-layout"
 classMapView = Html.class "map-view"
