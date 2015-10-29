@@ -21,8 +21,8 @@ main =
         initial = { selected = 0, map = initialMap }
     in StartApp.start { model = initial, view = view, update = update }
 
-mapWidth = 20
-mapHeight = 20
+mapWidth = 16
+mapHeight = 16
 
 tileSize : Int
 tileSize = 20
@@ -69,17 +69,18 @@ view address {selected, map} =
 
 mapView : Array (Array Int) -> Html
 mapView map =
-    let w = mapWidth * tileSize
+    let (ox, oy) = ((-w + tileSize) // 2, (h + tileSize) // 2)
+        w = mapWidth * tileSize
         h = mapHeight * tileSize
         toForm i j c =
-            Collage.move (toFloat (i * tileSize), toFloat (j * tileSize))
+            Collage.move (toFloat (ox + i * tileSize), toFloat (oy + -j * tileSize))
             << flip Collage.filled (Collage.square (toFloat tileSize))
             <| getFromList paletteColors c Color.red
         forms = List.concat
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-    in Html.fromElement <| Collage.collage w h forms
+    in Html.div [classMapView] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
 update : Int -> AppState -> AppState
 update input {selected, map} = { selected = input, map = map }
@@ -90,6 +91,7 @@ type alias AppState =
     }
 
 classAppLayout = Html.class "app-layout"
+classMapView = Html.class "map-view"
 classControlContainer = Html.class "control-container"
 classControlGroup = Html.class "control-group"
 classControls = Html.class "controls"
