@@ -1,6 +1,7 @@
 module MapEditor where
 
 -- core
+import Array exposing (Array)
 import Color exposing (Color)
 import Graphics.Element as Element exposing (Element, show)
 import Graphics.Collage as Collage
@@ -15,7 +16,13 @@ import Html.Events
 -- start-app
 import StartApp.Simple as StartApp
 
-main = StartApp.start { model = 0, view = view, update = curry fst }
+main =
+    let initialMap = Array.repeat mapHeight <| Array.repeat mapWidth 0
+        initial = { selected = 0, map = initialMap }
+    in StartApp.start { model = initial, view = view, update = update }
+
+mapWidth = 20
+mapHeight = 20
 
 tileSize : Int
 tileSize = 20
@@ -44,9 +51,6 @@ palette : List Collage.Form
 palette =
     List.map (flip Collage.filled (Collage.square (toFloat tileSize))) paletteColors
 
-port selectedColor : Signal Int
-
-
 getFromList : List a -> Int -> a -> a
 getFromList xs i default =
     case (xs, i) of
@@ -56,13 +60,36 @@ getFromList xs i default =
 
 
 
-view : Signal.Address Int -> Int -> Html
-view address selection =
+view : Signal.Address Int -> AppState -> Html
+view address {selected, map} =
     let group label a =
             Html.div [classControlGroup] [Html.label [] [Html.text label], a]
-    in Html.div [classControlContainer] [group "tiles" <| paletteView address, group "selected" <| selectedColorView selection]
+        controlView = Html.div [classControlContainer] [group "tiles" <| paletteView address, group "selected" <| selectedColorView selected]
+    in Html.div [classAppLayout] [mapView map, controlView]
 
+mapView : Array (Array Int) -> Html
+mapView map =
+    let w = mapWidth * tileSize
+        h = mapHeight * tileSize
+        toForm i j c =
+            Collage.move (toFloat (i * tileSize), toFloat (j * tileSize))
+            << flip Collage.filled (Collage.square (toFloat tileSize))
+            <| getFromList paletteColors c Color.red
+        forms = List.concat
+            << Array.toList
+            << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
+            <| map
+    in Html.fromElement <| Collage.collage w h forms
 
+update : Int -> AppState -> AppState
+update input {selected, map} = { selected = input, map = map }
+
+type alias AppState =
+    { selected : Int
+    , map : Array (Array Int)
+    }
+
+classAppLayout = Html.class "app-layout"
 classControlContainer = Html.class "control-container"
 classControlGroup = Html.class "control-group"
 classControls = Html.class "controls"

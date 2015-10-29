@@ -18,10 +18,17 @@
 <div id="b"></div>
 
 <script type="text/javascript">
-Elm.embed(Elm.MapEditor, document.getElementById('main'), {selectedColor:0});
+Elm.embed(Elm.MapEditor, document.getElementById('main'), {});
 </script>
 
 <style>
+.app-layout {
+    display: flex;
+    flex-direction: row;
+    vertical-align: middle;
+    width: 600px;
+}
+
 .control-container {
     display: flex;
     flex-direction: column;
@@ -32,6 +39,7 @@ Elm.embed(Elm.MapEditor, document.getElementById('main'), {selectedColor:0});
 
 .control-group {
     margin: auto;
+    margin-top: 5px;
     margin-bottom: 10px;
     display: flex;
     flex-direction: column;
