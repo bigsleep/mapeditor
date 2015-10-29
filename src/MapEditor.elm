@@ -3,6 +3,9 @@ module MapEditor where
 -- core
 import Array exposing (Array)
 import Color exposing (Color)
+import Debug
+import Json.Encode
+import Json.Decode exposing ((:=))
 import Graphics.Element as Element exposing (Element, show)
 import Graphics.Collage as Collage
 import List
@@ -29,7 +32,8 @@ tileSize = 20
 
 paletteColors : List Color
 paletteColors =
-    [ Color.red
+    [ Color.white
+    , Color.red
     , Color.orange
     , Color.yellow
     , Color.green
@@ -38,14 +42,14 @@ paletteColors =
     , Color.brown
     ]
 
-paletteView : Signal.Address Int -> Html
+paletteView : Signal.Address AppInput -> Html
 paletteView address =
-    let toHtml i form = Html.div [classPaletteElement, Html.Events.onClick address i] [Html.fromElement <| Collage.collage tileSize tileSize [form]]
+    let toHtml i form = Html.div [classPaletteElement, Html.Events.onClick address (SelectColor i)] [Html.fromElement <| Collage.collage tileSize tileSize [form]]
     in Html.div [] <| List.indexedMap toHtml palette
 
 selectedColorView : Int -> Html
 selectedColorView i =
-    Html.div [] << flip (::) [] << Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.red
+    Html.div [] << flip (::) [] << Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.white
 
 palette : List Collage.Form
 palette =
@@ -60,35 +64,61 @@ getFromList xs i default =
 
 
 
-view : Signal.Address Int -> AppState -> Html
+view : Signal.Address AppInput -> AppState -> Html
 view address {selected, map} =
     let group label a =
             Html.div [classControlGroup] [Html.label [] [Html.text label], a]
         controlView = Html.div [classControlContainer] [group "tiles" <| paletteView address, group "selected" <| selectedColorView selected]
-    in Html.div [classAppLayout] [mapView map, controlView]
+    in Html.div [classAppLayout] [mapView map address, controlView]
 
-mapView : Array (Array Int) -> Html
-mapView map =
+mapView : Array (Array Int) -> Signal.Address AppInput -> Html
+mapView map address =
     let (ox, oy) = ((-w + tileSize) // 2, (h + tileSize) // 2)
         w = mapWidth * tileSize
         h = mapHeight * tileSize
         toForm i j c =
             Collage.move (toFloat (ox + i * tileSize), toFloat (oy + -j * tileSize))
             << flip Collage.filled (Collage.square (toFloat tileSize))
-            <| getFromList paletteColors c Color.red
+            <| getFromList paletteColors c Color.white
         forms = List.concat
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-    in Html.div [classMapView] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
+    in Html.div [classMapView, Html.id "map-view", onMapMouseInput address] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
-update : Int -> AppState -> AppState
-update input {selected, map} = { selected = input, map = map }
+update : AppInput -> AppState -> AppState
+update input {selected, map} = 
+    case input of
+        SelectColor c -> { selected = c, map = map }
+        MapMouseDown (x, y) ->
+            let x' = x // tileSize
+                y' = y // tileSize
+                _ = Debug.log "" (x', y')
+                map' = 
+                    case Array.get y' map of
+                        Just col -> Array.set y' (Array.set x' selected col) map
+                        Nothing -> map
+                out = Debug.log "" { selected = selected, map = map' }
+            in out
+        MapMouseUp (x, y) -> Debug.log ("mouse up ") { selected = selected, map = map }
 
 type alias AppState =
     { selected : Int
     , map : Array (Array Int)
     }
+
+type AppInput =
+    SelectColor Int |
+    MapMouseDown (Int, Int) |
+    MapMouseUp (Int, Int)
+
+--port mapMouseInput : Signal (Int, Int)
+{--}
+onMapMouseInput : Signal.Address AppInput -> Html.Attribute
+onMapMouseInput address =
+    let decoder = Json.Decode.object2 (,) ("clientX" := Json.Decode.int) ("clientY" := Json.Decode.int)
+    in Html.Events.on "click" decoder (\(x, y) -> always (Signal.message address (MapMouseDown (x, y))) ())
+--}
 
 classAppLayout = Html.class "app-layout"
 classMapView = Html.class "map-view"

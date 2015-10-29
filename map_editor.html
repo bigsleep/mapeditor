@@ -4,6 +4,7 @@
 <title>Map Editor</title>
 <script src="elm.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.11.4/vue.min.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
 
 <!-- Latest compiled and minified JavaScript -->
 <!-- link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous" -->
@@ -18,7 +19,15 @@
 <div id="b"></div>
 
 <script type="text/javascript">
-Elm.embed(Elm.MapEditor, document.getElementById('main'), {});
+var main = Elm.embed(Elm.MapEditor, $('#main')[0], {});
+/*
+$('#map-view').find('canvas').click(function (e) {
+    var rect = e.target.getBoundingClientRect();
+    x = e.clientX - rect.left;
+    y = e.clientY - rect.top;
+    main.ports.mapMouseInput.send([x, y]);
+});
+*/
 </script>
 
 <style>
@@ -30,6 +39,7 @@ Elm.embed(Elm.MapEditor, document.getElementById('main'), {});
 
 .map-view {
     margin-left: 10px;
+    border: solid 1px #000000;
 }
 
 .control-container {
