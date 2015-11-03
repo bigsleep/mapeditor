@@ -19,7 +19,7 @@
 <div id="b"></div>
 
 <script type="text/javascript">
-var main = Elm.embed(Elm.MapEditor, $('#main')[0], {mapMouseInput : [0, 0]});
+var main = Elm.embed(Elm.Main, $('#main')[0], {mapMouseInput : [0, 0]});
 $('#map-view').find('canvas').click(function (e) {
     var rect = e.target.getBoundingClientRect();
     x = e.clientX - rect.left;
