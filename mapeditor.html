@@ -3,13 +3,7 @@
 <meta charset="UTF-8">
 <title>Map Editor</title>
 <script src="elm.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.11.4/vue.min.js"></script>
 <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
-
-<!-- Latest compiled and minified JavaScript -->
-<!-- link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous" -->
-<!-- link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css" integrity="sha384-aUGj/X2zp5rLCbBxumKTCw2Z50WgIr1vs/PFN4praOTvYXWlVyh2UtNUU0KAUhAX" crossorigin="anonymous" -->
-<!-- script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js" integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ==" crossorigin="anonymous"></script -->
 </head>
 
 <body>
@@ -29,18 +23,20 @@ $('#map-view').find('canvas').click(function (e) {
 </script>
 
 <style>
-.app-layout {
-    display: flex;
-    flex-direction: row;
-    vertical-align: middle;
+.app {
 }
 
-.map-view {
+.map > * {
     border: solid 1px #000000;
 }
 
+.map {
+}
+
+.output {
+}
+
 .control-container {
-    margin-left: 10px;
     display: flex;
     flex-direction: column;
     vertical-align: middle;
@@ -59,7 +55,7 @@ $('#map-view').find('canvas').click(function (e) {
     margin: auto;
 }
 
-.palette-view {
+.palette {
     border: solid 1px #000000;
 }
 
@@ -67,7 +63,7 @@ $('#map-view').find('canvas').click(function (e) {
     display: table-cell;
 }
 
-.selected-view {
+.selected {
     border: solid 1px #000000;
 }
 </style>

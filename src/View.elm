@@ -37,10 +37,10 @@ paletteView address =
             Html.div
                 [classPaletteElement, Html.Events.onClick address (MapEditor.SelectColor i)]
                 [Html.fromElement <| Collage.collage MapEditor.tileSize MapEditor.tileSize [form]]
-    in Html.div [classPaletteView] <| List.indexedMap toHtml palette
+    in Html.div [classPalette] <| List.indexedMap toHtml palette
 
 selectedColorView : Int -> Html
-selectedColorView i = Html.div [classSelectedView]
+selectedColorView i = Html.div [classSelected]
     << flip (::) []
     << Html.fromElement
     << Collage.collage MapEditor.tileSize MapEditor.tileSize
@@ -63,7 +63,7 @@ view address {selected, map} =
             Html.div
                 [classControlContainer]
                 [group "tiles" <| paletteView address, group "selected" <| selectedColorView selected]
-    in Html.div [classAppLayout] [mapView map address, controlView]
+    in Html.div [classApp] [mapView map address, controlView, outputView map]
 
 mapView : Array (Array Int) -> Signal.Address MapEditor.AppInput -> Html
 mapView map address =
@@ -78,22 +78,22 @@ mapView map address =
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-        mv = Html.div [classMapView, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
-    in Html.div [] [mv, encodedView map]
+    in Html.div [classMap, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
-encodedView : Array (Array Int) -> Html
-encodedView map =
+outputView : Array (Array Int) -> Html
+outputView map =
     let encodeRow = Array.foldl (\a b -> b ++ (if b == "" then "" else ",") ++ toString a) ""
         encoded = (\a -> "[" ++ a ++ "]") << Array.foldl (\a b -> b ++ (if b == "" then "" else ",\n") ++ "[" ++ a ++ "]") ""
             << Array.map encodeRow
             <| map
-    in Html.textarea [] [Html.text encoded]
+    in Html.textarea [classOutput, Html.readonly True] [Html.text encoded]
 
-classAppLayout = Html.class "app-layout"
-classMapView = Html.class "map-view"
+classApp = Html.class "app"
+classMap = Html.class "map"
+classOutput = Html.class "output"
 classControlContainer = Html.class "control-container"
 classControlGroup = Html.class "control-group"
 classControls = Html.class "controls"
-classPaletteView = Html.class "palette-view"
+classPalette = Html.class "palette"
 classPaletteElement = Html.class "palette-element"
-classSelectedView = Html.class "selected-view"
+classSelected = Html.class "selected"
