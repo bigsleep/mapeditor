@@ -16,17 +16,10 @@ import Html exposing (Html)
 import Html.Attributes as Html
 import Html.Events
 
--- start-app
-import StartApp
-
--- elm-effects
-import Effects exposing (Effects)
-
 main =
     let initialMap = Array.repeat mapHeight <| Array.repeat mapWidth 0
         initial = { selected = 0, map = initialMap }
-        app = StartApp.start { init = (initial, Effects.none), update = update, view = view, inputs = [Signal.map (MapMouseDown) mapMouseInput] }
-    in app.html
+    in start { initial = initial, update = update, view = view, inputs = [Signal.map (MapMouseDown) mapMouseInput] }
 
 mapWidth = 16
 mapHeight = 16
@@ -90,10 +83,10 @@ mapView map address =
             <| map
     in Html.div [classMapView, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
-update : AppInput -> AppState -> (AppState, Effects AppInput)
+update : AppInput -> AppState -> AppState
 update input {selected, map} = 
     case input of
-        SelectColor c -> ({ selected = c, map = map }, Effects.none)
+        SelectColor c -> { selected = c, map = map }
         MapMouseDown (x, y) ->
             let x' = x // tileSize
                 y' = y // tileSize
@@ -102,9 +95,9 @@ update input {selected, map} =
                     case Array.get y' map of
                         Just col -> Array.set y' (Array.set x' selected col) map
                         Nothing -> map
-                out = Debug.log "" { selected = selected, map = map' }
-            in (out, Effects.none)
-        MapMouseUp (x, y) -> Debug.log ("mouse up ") ({ selected = selected, map = map }, Effects.none)
+                out = { selected = selected, map = map' }
+            in out
+        MapMouseUp (x, y) -> { selected = selected, map = map }
 
 type alias AppState =
     { selected : Int
@@ -126,3 +119,28 @@ classControls = Html.class "controls"
 classPaletteView = Html.class "palette-view"
 classPaletteElement = Html.class "palette-element"
 classSelectedView = Html.class "selected-view"
+
+
+type alias App action model =
+    { initial : model
+    , view : Signal.Address action -> model -> Html
+    , update : action -> model -> model
+    , inputs : List (Signal action)
+    }
+
+start : App action model -> Signal Html
+start config =
+    let actions = Signal.mailbox Nothing
+    
+        address = Signal.forwardTo actions.address Just
+
+        sig = Signal.mergeMany (actions.signal :: List.map (Signal.map Just) config.inputs)
+
+        update' a m =
+            case a of
+                Just action -> config.update action m
+                Nothing -> m
+
+        model = Signal.foldp update' config.initial sig 
+
+    in Signal.map (config.view address) model
