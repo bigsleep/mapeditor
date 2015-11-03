@@ -49,11 +49,11 @@ paletteColors =
 paletteView : Signal.Address AppInput -> Html
 paletteView address =
     let toHtml i form = Html.div [classPaletteElement, Html.Events.onClick address (SelectColor i)] [Html.fromElement <| Collage.collage tileSize tileSize [form]]
-    in Html.div [] <| List.indexedMap toHtml palette
+    in Html.div [classPaletteView] <| List.indexedMap toHtml palette
 
 selectedColorView : Int -> Html
 selectedColorView i =
-    Html.div [] << flip (::) [] << Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.white
+    Html.div [classSelectedView] << flip (::) [] << Html.fromElement << Collage.collage tileSize tileSize << flip (::) [] << flip Collage.filled (Collage.square (toFloat tileSize)) <| getFromList paletteColors i Color.white
 
 palette : List Collage.Form
 palette =
@@ -123,4 +123,6 @@ classMapView = Html.class "map-view"
 classControlContainer = Html.class "control-container"
 classControlGroup = Html.class "control-group"
 classControls = Html.class "controls"
+classPaletteView = Html.class "palette-view"
 classPaletteElement = Html.class "palette-element"
+classSelectedView = Html.class "selected-view"
