@@ -78,7 +78,16 @@ mapView map address =
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-    in Html.div [classMapView, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
+        mv = Html.div [classMapView, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
+    in Html.div [] [mv, encodedView map]
+
+encodedView : Array (Array Int) -> Html
+encodedView map =
+    let encodeRow = Array.foldl (\a b -> b ++ (if b == "" then "" else ",") ++ toString a) ""
+        encoded = (\a -> "[" ++ a ++ "]") << Array.foldl (\a b -> b ++ (if b == "" then "" else ",\n") ++ "[" ++ a ++ "]") ""
+            << Array.map encodeRow
+            <| map
+    in Html.textarea [] [Html.text encoded]
 
 classAppLayout = Html.class "app-layout"
 classMapView = Html.class "map-view"
