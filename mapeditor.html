@@ -24,6 +24,14 @@ $('#map-view').find('canvas').click(function (e) {
 
 <style>
 .app {
+    max-width: 800px;
+    margin-right: auto;
+    margin-left: auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: stretch;
 }
 
 .map > * {
@@ -31,24 +39,30 @@ $('#map-view').find('canvas').click(function (e) {
 }
 
 .map {
+    order: 1;
 }
 
 .output {
+    order: 3;
+    resize: none;
+    font-size: 1em;
+    line-height: 1.2em;
+    min-width: 500px;
+    height: calc(1.2em * 16);
+    margin-top: 10px;
 }
 
 .control-container {
-    display: flex;
-    flex-direction: column;
-    vertical-align: middle;
-    text-align: center;
+    order: 2;
+    margin-top: 10px;
+    margin-right: 10px;
+    width: 200px;
 }
 
 .control-group {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
-    vertical-align: middle;
-    text-align: center;
 }
 
 .control-group > * {
