@@ -5,12 +5,14 @@ import Array exposing (Array)
 import Color exposing (Color)
 import Graphics.Element as Element exposing (Element, show)
 import Graphics.Collage as Collage
+import Json.Decode
 import List
 import Signal exposing (Signal)
+import String
 
 -- elm-html
 import Html exposing (Html)
-import Html.Attributes as Html
+import Html.Attributes as Attr
 import Html.Events
 
 import MapEditor
@@ -53,16 +55,40 @@ palette = Array.toList
     << Array.map (flip Collage.filled (Collage.square (toFloat MapEditor.tileSize)))
     <| paletteColors
 
+inputView : (Int -> MapEditor.AppInput) -> Signal.Address MapEditor.AppInput -> Html
+inputView toAction address =
+    let decoder = Html.Events.targetValue `Json.Decode.andThen` f
+        f a =
+            case String.toInt a of
+                Ok i -> Json.Decode.succeed << toAction <| i
+                Err e -> Json.Decode.fail e
+        onInput = Html.Events.on "input" decoder (Signal.message address)
+        widthInput = Html.input [Attr.type' "number", onInput] []
+    in Html.div [] [widthInput]
+
 view : Signal.Address MapEditor.AppInput -> MapEditor.AppState -> Html
 view address {selected, map} =
-    let group label a =
+    let mapWidth = Array.length << Maybe.withDefault Array.empty << Array.get 0 <| map
+        mapHeight = Array.length map
+
+        group label a =
             Html.div
                 [classControlGroup]
                 [Html.label [] [Html.text label], a]
+
         controlView =
             Html.div
                 [classControlContainer]
-                [group "tiles" <| paletteView address, group "selected" <| selectedColorView selected]
+                [ group "tiles" <| paletteView address
+                , group "selected" <| selectedColorView selected
+                , group "width" <| inputView changeWidth address
+                , group "height" <| inputView changeHeight address
+                ]
+
+        changeWidth w = MapEditor.ResizeMap (w, mapHeight)
+
+        changeHeight h = MapEditor.ResizeMap (mapWidth, h)
+
     in Html.div [classApp] [mapView map address, controlView, outputView map]
 
 mapView : Array (Array Int) -> Signal.Address MapEditor.AppInput -> Html
@@ -80,7 +106,7 @@ mapView map address =
             << Array.toList
             << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
             <| map
-    in Html.div [classMap, Html.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
+    in Html.div [classMap, Attr.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
 
 outputView : Array (Array Int) -> Html
 outputView map =
@@ -88,14 +114,14 @@ outputView map =
         encoded = (\a -> "[" ++ a ++ "]") << Array.foldl (\a b -> b ++ (if b == "" then "" else ",\n") ++ "[" ++ a ++ "]") ""
             << Array.map encodeRow
             <| map
-    in Html.textarea [classOutput, Html.readonly True] [Html.text encoded]
+    in Html.textarea [classOutput, Attr.readonly True] [Html.text encoded]
 
-classApp = Html.class "app"
-classMap = Html.class "map"
-classOutput = Html.class "output"
-classControlContainer = Html.class "control-container"
-classControlGroup = Html.class "control-group"
-classControls = Html.class "controls"
-classPalette = Html.class "palette"
-classPaletteElement = Html.class "palette-element"
-classSelected = Html.class "selected"
+classApp = Attr.class "app"
+classMap = Attr.class "map"
+classOutput = Attr.class "output"
+classControlContainer = Attr.class "control-container"
+classControlGroup = Attr.class "control-group"
+classControls = Attr.class "controls"
+classPalette = Attr.class "palette"
+classPaletteElement = Attr.class "palette-element"
+classSelected = Attr.class "selected"
