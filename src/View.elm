@@ -57,12 +57,12 @@ palette = Array.toList
 
 inputView : (Int -> MapEditor.AppInput) -> Signal.Address MapEditor.AppInput -> Html
 inputView toAction address =
-    let decoder = Html.Events.targetValue `Json.Decode.andThen` f
-        f a =
-            case String.toInt a of
-                Ok i -> Json.Decode.succeed << toAction <| i
-                Err e -> Json.Decode.fail e
-        onInput = Html.Events.on "input" decoder (Signal.message address)
+    let decoder = Json.Decode.object2 (,) Html.Events.keyCode Html.Events.targetValue `Json.Decode.andThen` f
+        f (k, a) =
+            case (k, String.toInt a) of
+                (13, Ok i) -> Json.Decode.succeed << toAction <| i
+                (_, Err e) -> Json.Decode.fail e
+        onInput = Html.Events.on "keypress" decoder (Signal.message address)
         widthInput = Html.input [Attr.type' "number", onInput] []
     in Html.div [] [widthInput]
 
