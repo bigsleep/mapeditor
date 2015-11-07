@@ -8,7 +8,7 @@ import MapEditor
 import View
 
 main =
-    let initialMap = Array.repeat MapEditor.mapHeight <| Array.repeat MapEditor.mapWidth 0
+    let initialMap = Array.repeat MapEditor.initialMapHeight <| Array.repeat MapEditor.initialMapWidth 0
         initial = { selected = 0, map = initialMap }
     in start { initial = initial, update = MapEditor.update, view = View.view, inputs = [Signal.map (MapEditor.MapMouseDown) mapMouseInput] }
 

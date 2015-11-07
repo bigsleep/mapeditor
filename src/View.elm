@@ -68,8 +68,10 @@ view address {selected, map} =
 mapView : Array (Array Int) -> Signal.Address MapEditor.AppInput -> Html
 mapView map address =
     let (ox, oy) = ((-w + MapEditor.tileSize) // 2, (h - MapEditor.tileSize) // 2)
-        w = MapEditor.mapWidth * MapEditor.tileSize
-        h = MapEditor.mapHeight * MapEditor.tileSize
+        mapWidth = Array.length << Maybe.withDefault Array.empty << Array.get 0 <| map
+        mapHeight = Array.length map
+        w = mapWidth * MapEditor.tileSize
+        h = mapHeight * MapEditor.tileSize
         toForm i j c =
             Collage.move (toFloat (ox + i * MapEditor.tileSize), toFloat (oy + -j * MapEditor.tileSize))
             << flip Collage.filled (Collage.square (toFloat MapEditor.tileSize))
