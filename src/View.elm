@@ -57,13 +57,21 @@ palette = Array.toList
 
 inputView : (Int -> MapEditor.AppInput) -> Signal.Address MapEditor.AppInput -> Html
 inputView toAction address =
-    let decoder = Json.Decode.object2 (,) Html.Events.keyCode Html.Events.targetValue `Json.Decode.andThen` f
-        f (k, a) =
-            case (k, String.toInt a) of
-                (13, Ok i) -> Json.Decode.succeed << toAction <| i
-                (_, Err e) -> Json.Decode.fail e
-        onInput = Html.Events.on "keypress" decoder (Signal.message address)
-        widthInput = Html.input [Attr.type' "number", onInput] []
+    let enterEventDecoder = Json.Decode.object2 (,) Html.Events.keyCode Html.Events.targetValue `Json.Decode.andThen`
+            \(k, a) ->
+                case (k, String.toInt a) of
+                    (13, Ok i) -> Json.Decode.succeed << toAction <| i
+                    (_, Err e) -> Json.Decode.fail e
+
+        clickEventDecoder = Html.Events.targetValue `Json.Decode.andThen`
+            \a ->
+                case String.toInt a of
+                    Ok i -> Json.Decode.succeed << toAction <| i
+                    Err e -> Json.Decode.fail e
+
+        onEnter = Html.Events.on "keypress" enterEventDecoder (Signal.message address)
+        onClick = Html.Events.on "click" clickEventDecoder (Signal.message address)
+        widthInput = Html.input [Attr.type' "number", onEnter, onClick] []
     in Html.div [] [widthInput]
 
 view : Signal.Address MapEditor.AppInput -> MapEditor.AppState -> Html
