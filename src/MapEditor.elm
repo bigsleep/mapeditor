@@ -23,39 +23,38 @@ maxMapWidth = 40
 maxMapHeight : Int
 maxMapHeight = 40
 
-tileSize : Int
-tileSize = 20
-
 update : AppInput -> AppState -> AppState
-update input {selected, map} = 
+update input {map} = 
     case input of
-        SelectColor c -> { selected = c, map = map }
-        MapMouseDown (x, y) ->
-            let x' = x // tileSize
-                y' = y // tileSize
-                map' = 
-                    case Array.get y' map of
-                        Just col -> Array.set y' (Array.set x' selected col) map
-                        Nothing -> map
-                out = { selected = selected, map = map' }
-            in out
-        MapMouseUp (x, y) -> { selected = selected, map = map }
+        PutTile c (x, y) ->
+            case Array.get y map of
+                Just col -> {map = Array.set y (Array.set x c col) map}
+                Nothing -> {map = map}
+
+        Move ps (dx, dy) -> {map = map}
+{-
+            let updates = List.filterMap sndJust << List.zip ps << getSomeFromMap ps map
+
+                sndJust a =
+                    case a of
+                        (x, Just y) -> Just (x, y)
+                        otherwise -> Nothing
+            in {updateMap updates map}
+-}
 
         ResizeMap (w, h) ->
             let w' = min (max w minMapWidth) maxMapWidth
                 h' = min (max h minMapHeight) maxMapHeight
-            in { selected = selected, map = resizeMap w' h' 0 map }
+            in {map = resizeMap w' h' 0 map}
 
 type alias AppState =
-    { selected : Int
-    , map : Array (Array Int)
+    { map : Array (Array Int)
     }
 
-type AppInput =
-    SelectColor Int |
-    MapMouseDown (Int, Int) |
-    MapMouseUp (Int, Int) |
-    ResizeMap (Int, Int)
+type AppInput
+    = PutTile Int (Int, Int)
+    | Move (List Int) (Int, Int)
+    | ResizeMap (Int, Int)
 
 initializeMap : Int -> Int -> a -> Array (Array a)
 initializeMap w h x = Array.repeat h <| Array.repeat w x

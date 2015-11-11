@@ -1,7 +1,7 @@
 module Main where
 
 import Array
-import Signal exposing (Signal)
+import Signal exposing (Signal, (~))
 import Html exposing (Html)
 
 import MapEditor
@@ -9,14 +9,33 @@ import View
 
 main =
     let initialMap = Array.repeat MapEditor.initialMapHeight <| Array.repeat MapEditor.initialMapWidth 0
-        initial = { selected = 0, map = initialMap }
-    in start { initial = initial, update = MapEditor.update, view = View.view, inputs = [Signal.map (MapEditor.MapMouseDown) mapMouseInput] }
+        initial = {  map = initialMap }
 
-port mapMouseInput : Signal (Int, Int)
+        selectedMB = Signal.mailbox 0
+
+        signal = toAppInputSignal selectedMB.signal mapMouseInput
+
+    in start { initial = initial, update = MapEditor.update, view = View.view selectedMB, inputs = [signal] }
+
+type alias MouseEvent =
+    { eventType : String
+    , position : (Int, Int)
+    }
+
+port mapMouseInput : Signal MouseEvent
+
+toAppInputSignal : Signal Int -> Signal MouseEvent -> Signal MapEditor.AppInput
+toAppInputSignal selectionInput mouseInput =
+    let toAppInput (i, me) =
+            let (x, y) = me.position
+                x' = x // View.tileSize
+                y' = y // View.tileSize
+            in MapEditor.PutTile i (x', y')
+    in Signal.map toAppInput <| Signal.sampleOn mouseInput (Signal.map2 (,) selectionInput mouseInput)
 
 type alias App action model =
     { initial : model
-    , view : Signal.Address action -> model -> Html
+    , view : Signal.Address action -> Signal (model -> Html)
     , update : action -> model -> model
     , inputs : List (Signal action)
     }
@@ -34,6 +53,6 @@ start config =
                 Just action -> config.update action m
                 Nothing -> m
 
-        model = Signal.foldp update' config.initial sig
+        modelSignal = Signal.foldp update' config.initial sig
 
-    in Signal.map (config.view address) model
+    in config.view address ~ modelSignal
