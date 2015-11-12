@@ -35,6 +35,25 @@ toPutTileSignal selectionInput mouseInput =
             in MapEditor.PutTile i (x', y')
     in Signal.map toAppInput <| Signal.sampleOn mouseInput (Signal.map2 (,) selectionInput mouseInput)
 
+type DnDEvent a
+    = DnDNoEvent
+    | DnDDrag a (Int, Int)
+    | DnDDrop a (Int, Int)
+
+toDnDEvent : Signal MouseEvent -> Signal (Maybe a) -> Signal (DnDEvent a)
+toDnDEvent mouse target =
+    let sig = Signal.sampleOn mouse (Signal.map2 (,) mouse target)
+
+        difference (ax, ay) (bx, by) = (ax - bx, ay - by)
+
+        toDnD ({eventType, position}, a) (s, prev) =
+            case (s, eventType, a) of
+                (Just start, "mousemove", Just x) -> (Just start, DnDDrag x (difference position start))
+                (Just start, "mouseup", Just x) -> (Nothing, DnDDrop x (difference position start))
+                (Nothing, "mousedown", Just x) -> (Just position, DnDDrag x (0, 0))
+                otherwise -> (Nothing, DnDNoEvent)
+    in Signal.map snd << Signal.foldp toDnD (Nothing, DnDNoEvent) <| sig
+
 type alias App action model =
     { initial : model
     , view : Signal.Address action -> Signal (model -> Html)
