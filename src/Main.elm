@@ -9,13 +9,15 @@ import View
 
 main =
     let initialMap = Array.repeat MapEditor.initialMapHeight <| Array.repeat MapEditor.initialMapWidth 0
-        initial = {  map = initialMap }
+        initial = { map = initialMap }
 
-        selectedMB = Signal.mailbox 0
+        selectedMb = Signal.mailbox 0
 
-        signal = toAppInputSignal selectedMB.signal mapMouseInput
+        modeMb = Signal.mailbox 0
 
-    in start { initial = initial, update = MapEditor.update, view = View.view selectedMB, inputs = [signal] }
+        signal = toPutTileSignal selectedMb.signal mapMouseInput
+
+    in start { initial = initial, update = MapEditor.update, view = View.view selectedMb modeMb, inputs = [signal] }
 
 type alias MouseEvent =
     { eventType : String
@@ -24,8 +26,8 @@ type alias MouseEvent =
 
 port mapMouseInput : Signal MouseEvent
 
-toAppInputSignal : Signal Int -> Signal MouseEvent -> Signal MapEditor.AppInput
-toAppInputSignal selectionInput mouseInput =
+toPutTileSignal : Signal Int -> Signal MouseEvent -> Signal MapEditor.AppInput
+toPutTileSignal selectionInput mouseInput =
     let toAppInput (i, me) =
             let (x, y) = me.position
                 x' = x // View.tileSize
