@@ -11,13 +11,13 @@ main =
     let initialMap = Array.repeat MapEditor.initialMapHeight <| Array.repeat MapEditor.initialMapWidth 0
         initial = { map = initialMap }
 
-        selectedMb = Signal.mailbox 0
+        tileMb = Signal.mailbox 0
 
-        modeMb = Signal.mailbox 0
+        modeMb = Signal.mailbox View.InputModePutTile
 
-        signal = toPutTileSignal selectedMb.signal mapMouseInput
+        signal = toPutTileSignal modeMb.signal tileMb.signal mapMouseInput
 
-    in start { initial = initial, update = MapEditor.update, view = View.view selectedMb modeMb, inputs = [signal] }
+    in start { initial = initial, update = MapEditor.update, view = View.view tileMb modeMb, inputs = [signal] }
 
 type alias MouseEvent =
     { eventType : String
@@ -26,14 +26,19 @@ type alias MouseEvent =
 
 port mapMouseInput : Signal MouseEvent
 
-toPutTileSignal : Signal Int -> Signal MouseEvent -> Signal MapEditor.AppInput
-toPutTileSignal selectionInput mouseInput =
+toPutTileSignal : Signal View.InputMode -> Signal Int -> Signal MouseEvent -> Signal MapEditor.AppInput
+toPutTileSignal modeInput tileInput mouseInput =
     let toAppInput (i, me) =
             let (x, y) = me.position
                 x' = x // View.tileSize
                 y' = y // View.tileSize
             in MapEditor.PutTile i (x', y')
-    in Signal.map toAppInput <| Signal.sampleOn mouseInput (Signal.map2 (,) selectionInput mouseInput)
+
+        decider = Signal.map ((==) View.InputModePutTile) modeInput
+
+        mouseInput' = filterBy decider {eventType = "noevent", position = (0, 0) } mouseInput
+        
+    in Signal.map toAppInput <| Signal.sampleOn mouseInput' (Signal.map2 (,) tileInput mouseInput)
 
 type DnDEvent a
     = DnDNoEvent
@@ -77,3 +82,10 @@ start config =
         modelSignal = Signal.foldp update' config.initial sig
 
     in config.view address ~ modelSignal
+
+filterBy : Signal Bool -> a -> Signal a -> Signal a
+filterBy decider default sig
+    = Signal.map snd
+    <| Signal.filter fst (True, default)
+    <| Signal.sampleOn sig
+    <| Signal.map2 (,) decider sig

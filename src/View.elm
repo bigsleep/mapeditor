@@ -20,6 +20,10 @@ import MapEditor
 tileSize : Int
 tileSize = 20
 
+type InputMode
+    = InputModePutTile
+    | InputModeMove
+
 paletteColors : Array Color
 paletteColors = Array.fromList
     [ Color.white
@@ -43,10 +47,10 @@ paletteView address =
                 [Html.fromElement <| Collage.collage tileSize tileSize [form]]
     in Html.div [classPalette] <| List.indexedMap toHtml palette
 
-selectedColorView : Signal Int -> Signal Html
-selectedColorView = 
+tileColorView : Signal Int -> Signal Html
+tileColorView = 
     Signal.map
-        <| Html.div [classSelected]
+        <| Html.div [classTile]
         << flip (::) []
         << Html.fromElement
         << Collage.collage tileSize tileSize
@@ -54,11 +58,11 @@ selectedColorView =
         << flip Collage.filled (Collage.square (toFloat tileSize))
         << getPaletteColor
 
-modeView : Signal.Mailbox Int -> Signal Html
+modeView : Signal.Mailbox InputMode -> Signal Html
 modeView {address, signal} =
     let onChange index = Html.Events.on "change" Html.Events.targetChecked (\_ -> Signal.message address index)
         radio mode index = Html.input [Attr.type' "radio", Attr.checked (index == mode), onChange index] []
-        modeViewF mode = Html.div [] <| List.map (radio mode) [0..2]
+        modeViewF mode = Html.div [] <| List.map (radio mode) [InputModePutTile, InputModeMove]
     in Signal.map modeViewF signal
 
 palette : List Collage.Form
@@ -85,15 +89,15 @@ inputView toAction address =
         widthInput = Html.input [Attr.type' "number", onEnter, onClick] []
     in Html.div [] [widthInput]
 
-view : Signal.Mailbox Int -> Signal.Mailbox Int -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
-view selectedMb modeMb address =
+view : Signal.Mailbox Int -> Signal.Mailbox InputMode -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
+view tileMb modeMb address =
     let combineApp mapViewF controlViewF outputViewF map =
             Html.div [classApp] [mapViewF map, controlViewF map, outputViewF map]
-    in Signal.map3 combineApp (mapView address) (controlView selectedMb modeMb address) outputView
+    in Signal.map3 combineApp (mapView address) (controlView tileMb modeMb address) outputView
 
-controlView : Signal.Mailbox Int -> Signal.Mailbox Int -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
-controlView selectedMb modeMb address =
-    let controlViewF selectedColorV modeV {map} =
+controlView : Signal.Mailbox Int -> Signal.Mailbox InputMode -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
+controlView tileMb modeMb address =
+    let controlViewF tileColorV modeV {map} =
         let mapWidth = Array.length << Maybe.withDefault Array.empty << Array.get 0 <| map
             mapHeight = Array.length map
 
@@ -107,13 +111,13 @@ controlView selectedMb modeMb address =
 
         in Html.div
             [classControlContainer]
-            [ group "tiles" <| paletteView selectedMb.address
-            , group "selected" <| selectedColorV
+            [ group "tiles" <| paletteView tileMb.address
+            , group "tile" <| tileColorV
             , group "width" <| inputView changeWidth address
             , group "height" <| inputView changeHeight address
             , group "mode" <| modeV
             ]
-    in Signal.map2 controlViewF (selectedColorView selectedMb.signal) (modeView modeMb)
+    in Signal.map2 controlViewF (tileColorView tileMb.signal) (modeView modeMb)
 
 
 mapView : Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
@@ -153,4 +157,4 @@ classControlGroup = Attr.class "control-group"
 classControls = Attr.class "controls"
 classPalette = Attr.class "palette"
 classPaletteElement = Attr.class "palette-element"
-classSelected = Attr.class "selected"
+classTile = Attr.class "tile"
