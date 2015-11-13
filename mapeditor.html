@@ -14,12 +14,20 @@
 
 <script type="text/javascript">
 var main = Elm.embed(Elm.Main, $('#main')[0], {mapMouseInput : {eventType:"noevent", position:[0, 0]}});
-$('#map-view').find('canvas').click(function (e) {
+
+var callback = function (e) {
     var rect = e.target.getBoundingClientRect();
     x = e.clientX - rect.left;
     y = e.clientY - rect.top;
-    main.ports.mapMouseInput.send({eventType:e.type, position:[x, y]});
-});
+    ev = {eventType:e.type, position:[x, y]};
+    main.ports.mapMouseInput.send(ev);
+}
+
+var map = $('#map-view').find('canvas');
+map.mousedown(callback);
+map.mousemove(callback);
+map.mouseup(callback);
+map.mouseout(callback);
 </script>
 
 <style>
@@ -40,6 +48,7 @@ $('#map-view').find('canvas').click(function (e) {
 
 .map {
     order: 1;
+    cursor: pointer;
 }
 
 .output {

@@ -1,6 +1,7 @@
 module Main where
 
 import Array
+import Debug
 import Signal exposing (Signal, (~))
 import Html exposing (Html)
 
@@ -15,9 +16,13 @@ main =
 
         modeMb = Signal.mailbox View.InputModePutTile
 
-        signal = toPutTileSignal modeMb.signal tileMb.signal mapMouseInput
+        putTileSig = toPutTileSignal modeMb.signal tileMb.signal mapMouseInput
 
-    in start { initial = initial, update = MapEditor.update, view = View.view tileMb modeMb, inputs = [signal] }
+        moveSig = toMoveSignal modeMb.signal mapMouseInput
+
+        sig = Signal.merge putTileSig moveSig
+
+    in start { initial = initial, update = MapEditor.update, view = View.view tileMb modeMb, inputs = [sig] }
 
 type alias MouseEvent =
     { eventType : String
@@ -36,23 +41,49 @@ toPutTileSignal modeInput tileInput mouseInput =
 
         decider = Signal.map ((==) View.InputModePutTile) modeInput
 
-        mouseInput' = filterBy decider {eventType = "noevent", position = (0, 0) } mouseInput
+        mouseInput' =
+            filterBy decider { eventType = "noevent", position = (0, 0) }
+            <| Signal.filter (\me -> me.eventType == "mousedown") { eventType = "noevent", position = (0, 0) }
+            <| mouseInput
         
-    in Signal.map toAppInput <| Signal.sampleOn mouseInput' (Signal.map2 (,) tileInput mouseInput)
+    in Signal.map toAppInput <| Signal.sampleOn mouseInput' (Signal.map2 (,) tileInput mouseInput')
+
+toMoveSignal : Signal View.InputMode -> Signal MouseEvent -> Signal MapEditor.AppInput
+toMoveSignal modeInput mouseInput =
+    let toAppInput dnd =
+            case dnd of
+                DnDDrop a d -> Debug.log "move" <| Just <| MapEditor.Move a (fst d // View.tileSize, snd d // View.tileSize)
+                otherwise -> Nothing
+
+        decider = Signal.map ((==) View.InputModeMove) modeInput
+
+        mouseInput' =
+            filterBy decider { eventType = "noevent", position = (0, 0) }
+            <| mouseInput
+
+        selectSig =
+            let f {eventType, position} prev = 
+                case eventType of
+                    "mousedown" -> Just (fst position // View.tileSize, snd position // View.tileSize)
+                    otherwise -> prev
+            in Signal.foldp f Nothing mouseInput'
+
+    in Signal.filterMap identity (MapEditor.PutTile 0 (0, 0)) <| Signal.map toAppInput <| toDnDEventSignal mouseInput' selectSig
 
 type DnDEvent a
     = DnDNoEvent
     | DnDDrag a (Int, Int)
     | DnDDrop a (Int, Int)
 
-toDnDEvent : Signal MouseEvent -> Signal (Maybe a) -> Signal (DnDEvent a)
-toDnDEvent mouse target =
+toDnDEventSignal : Signal MouseEvent -> Signal (Maybe a) -> Signal (DnDEvent a)
+toDnDEventSignal mouse target =
     let sig = Signal.sampleOn mouse (Signal.map2 (,) mouse target)
 
         difference (ax, ay) (bx, by) = (ax - bx, ay - by)
 
         toDnD ({eventType, position}, a) (s, prev) =
-            case (s, eventType, a) of
+            let _ = Debug.log "ev" (s, eventType, a)
+            in case (s, eventType, a) of
                 (Just start, "mousemove", Just x) -> (Just start, DnDDrag x (difference position start))
                 (Just start, "mouseup", Just x) -> (Nothing, DnDDrop x (difference position start))
                 (Nothing, "mousedown", Just x) -> (Just position, DnDDrag x (0, 0))
