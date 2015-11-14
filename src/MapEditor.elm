@@ -33,11 +33,13 @@ update input {map} =
                 Just col -> {map = Array.set y (Array.set x c col) map}
                 Nothing -> {map = map}
 
+        Move _ (0, 0) -> {map = map}
+
         Move (x, y) (dx, dy) ->
-            let flipMap = flip Maybe.map
-            in Maybe.withDefault {map = map}
-                    <| getFromMat (x, y) map
-                    `flipMap` \c -> {map = updateMat (x + dx, y + dy) c map}
+            getFromMat (x, y) map
+                |> Maybe.map (\c -> {map = updateMat (x + dx, y + dy) c map})
+                |> Maybe.map (\m -> {map = updateMat (x, y) 0 m.map})
+                |> Maybe.withDefault {map = map}
 
         ResizeMap (w, h) ->
             let w' = min (max w minMapWidth) maxMapWidth
