@@ -144,22 +144,37 @@ mapView address dragSig =
                     Just ((x, y), _) -> MapEditor.updateMat (x, y) 0 map
                     Nothing -> map
 
-            toForm i j c = toFormCoord (i * tileSize) (j * tileSize) c
+            moveForm x y = Collage.move (toFloat (ox + x), toFloat (oy - y))
 
-            toFormCoord x y c =
-                Collage.move (toFloat (ox + x), toFloat (oy - y))
-                << flip Collage.filled (Collage.square (toFloat tileSize))
-                <| getPaletteColor c
+            toForm =
+                flip Collage.filled (Collage.square (toFloat tileSize))
+                << getPaletteColor
+
+            toFormAt x y =
+                moveForm x y << toForm
+
+            toFormAt' i j =
+                moveForm (i * tileSize) (j * tileSize) << toForm
 
             forms = List.concat
                 << Array.toList
-                << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
+                << Array.indexedMap
+                    (\j col -> Array.toList << Array.indexedMap (\i row -> toFormAt' i j row) <| col)
                 <| map'
+
+            addDragForm ((x, y), (dx, dy)) c = 
+                let x' = x * tileSize + dx
+                    y' = y * tileSize + dy
+                    dragOutline = Collage.outlined (Collage.dashed Color.black) << Collage.square <| toFloat tileSize
+                in List.append forms
+                   [ toFormAt x' y' c
+                   , moveForm x' y' <| dragOutline
+                   ]
 
             forms' =
                 case drag of
-                    Just ((x, y), (dx, dy)) -> MapEditor.getFromMat (x, y) map
-                        |> Maybe.map (toFormCoord (x * tileSize + dx) (y * tileSize + dy) >> flip (::) [] >> List.append forms)
+                    Just (a, d) -> MapEditor.getFromMat a map
+                        |> Maybe.map (addDragForm (a, d))
                         |> Maybe.withDefault forms
                     Nothing -> forms
 
