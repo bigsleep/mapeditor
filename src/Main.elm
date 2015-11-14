@@ -18,11 +18,11 @@ main =
 
         putTileSig = toPutTileSignal modeMb.signal tileMb.signal mapMouseInput
 
-        moveSig = toMoveSignal modeMb.signal mapMouseInput
+        (moveSig, dragSig) = toMoveSignal modeMb.signal mapMouseInput
 
         sig = Signal.merge putTileSig moveSig
 
-    in start { initial = initial, update = MapEditor.update, view = View.view tileMb modeMb, inputs = [sig] }
+    in start { initial = initial, update = MapEditor.update, view = View.view tileMb modeMb dragSig, inputs = [sig] }
 
 type alias MouseEvent =
     { eventType : String
@@ -48,11 +48,11 @@ toPutTileSignal modeInput tileInput mouseInput =
         
     in Signal.map toAppInput <| Signal.sampleOn mouseInput' (Signal.map2 (,) tileInput mouseInput')
 
-toMoveSignal : Signal View.InputMode -> Signal MouseEvent -> Signal MapEditor.AppInput
+toMoveSignal : Signal View.InputMode -> Signal MouseEvent -> (Signal MapEditor.AppInput, Signal (Maybe ((Int, Int), (Int, Int))))
 toMoveSignal modeInput mouseInput =
     let toAppInput dnd =
             case dnd of
-                DnDDrop a d -> Debug.log "move" <| Just <| MapEditor.Move a (fst d // View.tileSize, snd d // View.tileSize)
+                DnDDrop a d -> Just <| MapEditor.Move a (fst d // View.tileSize, snd d // View.tileSize)
                 otherwise -> Nothing
 
         decider = Signal.map ((==) View.InputModeMove) modeInput
@@ -68,7 +68,16 @@ toMoveSignal modeInput mouseInput =
                     otherwise -> prev
             in Signal.foldp f Nothing mouseInput'
 
-    in Signal.filterMap identity (MapEditor.PutTile 0 (0, 0)) <| Signal.map toAppInput <| toDnDEventSignal mouseInput' selectSig
+        dndSig = toDnDEventSignal mouseInput' selectSig
+
+        dragSig = flip Signal.map dndSig <|
+            \e -> case e of
+                    DnDDrag a b -> Just (a, b)
+                    otherwise -> Nothing
+
+        moveSig = Signal.filterMap identity (MapEditor.PutTile 0 (0, 0)) <| Signal.map toAppInput dndSig
+
+    in (moveSig, dragSig)
 
 type DnDEvent a
     = DnDNoEvent
@@ -82,8 +91,7 @@ toDnDEventSignal mouse target =
         difference (ax, ay) (bx, by) = (ax - bx, ay - by)
 
         toDnD ({eventType, position}, a) (s, prev) =
-            let _ = Debug.log "ev" (s, eventType, a)
-            in case (s, eventType, a) of
+            case (s, eventType, a) of
                 (Just start, "mousemove", Just x) -> (Just start, DnDDrag x (difference position start))
                 (Just start, "mouseup", Just x) -> (Nothing, DnDDrop x (difference position start))
                 (Nothing, "mousedown", Just x) -> (Just position, DnDDrag x (0, 0))

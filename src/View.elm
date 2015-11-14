@@ -89,11 +89,15 @@ inputView toAction address =
         widthInput = Html.input [Attr.type' "number", onEnter, onClick] []
     in Html.div [] [widthInput]
 
-view : Signal.Mailbox Int -> Signal.Mailbox InputMode -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
-view tileMb modeMb address =
+view : Signal.Mailbox Int
+    -> Signal.Mailbox InputMode
+    -> Signal (Maybe ((Int, Int), (Int, Int)))
+    -> Signal.Address MapEditor.AppInput
+    -> Signal (MapEditor.AppState -> Html)
+view tileMb modeMb dragSig address =
     let combineApp mapViewF controlViewF outputViewF map =
             Html.div [classApp] [mapViewF map, controlViewF map, outputViewF map]
-    in Signal.map3 combineApp (mapView address) (controlView tileMb modeMb address) outputView
+    in Signal.map3 combineApp (mapView address dragSig) (controlView tileMb modeMb address) outputView
 
 controlView : Signal.Mailbox Int -> Signal.Mailbox InputMode -> Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
 controlView tileMb modeMb address =
@@ -120,24 +124,47 @@ controlView tileMb modeMb address =
     in Signal.map2 controlViewF (tileColorView tileMb.signal) (modeView modeMb)
 
 
-mapView : Signal.Address MapEditor.AppInput -> Signal (MapEditor.AppState -> Html)
-mapView address =
-    let mapViewF {map} =
+mapView : Signal.Address MapEditor.AppInput
+    -> Signal (Maybe ((Int, Int), (Int, Int)))
+    -> Signal (MapEditor.AppState -> Html)
+mapView address dragSig =
+    let mapViewF drag {map} =
         let (ox, oy) = ((-w + tileSize) // 2, (h - tileSize) // 2)
+
             mapWidth = Array.length << Maybe.withDefault Array.empty << Array.get 0 <| map
+
             mapHeight = Array.length map
+
             w = mapWidth * tileSize
+
             h = mapHeight * tileSize
-            toForm i j c =
-                Collage.move (toFloat (ox + i * tileSize), toFloat (oy + -j * tileSize))
+
+            map' =
+                case drag of
+                    Just ((x, y), _) -> MapEditor.updateMat (x, y) 0 map
+                    Nothing -> map
+
+            toForm i j c = toFormCoord (i * tileSize) (j * tileSize) c
+
+            toFormCoord x y c =
+                Collage.move (toFloat (ox + x), toFloat (oy - y))
                 << flip Collage.filled (Collage.square (toFloat tileSize))
                 <| getPaletteColor c
+
             forms = List.concat
                 << Array.toList
                 << Array.indexedMap (\j col -> Array.toList << Array.indexedMap (\i row -> toForm i j row) <| col)
-                <| map
-        in Html.div [classMap, Attr.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms
-    in Signal.constant mapViewF
+                <| map'
+
+            forms' =
+                case drag of
+                    Just ((x, y), (dx, dy)) -> MapEditor.getFromMat (x, y) map
+                        |> Maybe.map (toFormCoord (x * tileSize + dx) (y * tileSize + dy) >> flip (::) [] >> List.append forms)
+                        |> Maybe.withDefault forms
+                    Nothing -> forms
+
+        in Html.div [classMap, Attr.id "map-view"] << flip (::) [] << Html.fromElement <| Collage.collage w h forms'
+    in Signal.map mapViewF dragSig
 
 outputView : Signal (MapEditor.AppState -> Html)
 outputView =
