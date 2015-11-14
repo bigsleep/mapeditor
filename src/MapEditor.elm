@@ -23,6 +23,8 @@ maxMapWidth = 40
 maxMapHeight : Int
 maxMapHeight = 40
 
+type alias Mat a = Array (Array a)
+
 update : AppInput -> AppState -> AppState
 update input {map} = 
     case input of
@@ -32,17 +34,15 @@ update input {map} =
                 Nothing -> {map = map}
 
         Move (x, y) (dx, dy) ->
-            let dest = (x + dx, y + dy)
-            in case Array.get y map of
-                    Just col -> case Array.get x col of
-                                     Just c -> {map = updateMap dest c map}
-                                     otherwise -> {map = map}
-                    otherwise -> {map = map}
+            let flipMap = flip Maybe.map
+            in Maybe.withDefault {map = map}
+                    <| getFromMat (x, y) map
+                    `flipMap` \c -> {map = updateMat (x + dx, y + dy) c map}
 
         ResizeMap (w, h) ->
             let w' = min (max w minMapWidth) maxMapWidth
                 h' = min (max h minMapHeight) maxMapHeight
-            in {map = resizeMap w' h' 0 map}
+            in {map = resizeMat w' h' 0 map}
 
 type alias AppState =
     { map : Array (Array Int)
@@ -53,11 +53,11 @@ type AppInput
     | Move (Int, Int) (Int, Int)
     | ResizeMap (Int, Int)
 
-initializeMap : Int -> Int -> a -> Array (Array a)
-initializeMap w h x = Array.repeat h <| Array.repeat w x
+initializeMat : Int -> Int -> a -> Mat a
+initializeMat w h x = Array.repeat h <| Array.repeat w x
 
-resizeMap : Int -> Int -> a -> Array (Array a) -> Array (Array a)
-resizeMap w h x m =
+resizeMat : Int -> Int -> a -> Mat a -> Mat a
+resizeMat w h x m =
     let resize size x a =
             let size0 = Array.length a
             in if | size > size0 -> Array.append a (Array.repeat (size - size0) x)
@@ -66,8 +66,14 @@ resizeMap w h x m =
         emptyRow = Array.repeat w x
     in resize h emptyRow << Array.map (resize w x) <| m
 
-updateMap : (Int, Int) -> a -> Array (Array a) -> Array (Array a)
-updateMap (x, y) a m =
+updateMat : (Int, Int) -> a -> Mat a -> Mat a
+updateMat (x, y) a m =
     case Array.get y m of
         Just col -> Array.set y (Array.set x a col) m
         otherwise -> m
+
+getFromMat : (Int, Int) -> Mat a -> Maybe a
+getFromMat (x, y) m =
+    case Array.get y m of
+        Just col -> Array.get x col
+        Nothing -> Nothing
