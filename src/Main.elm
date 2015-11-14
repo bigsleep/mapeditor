@@ -93,7 +93,7 @@ toDnDEventSignal mouse target =
         toDnD ({eventType, position}, a) (s, prev) =
             case (s, eventType, a) of
                 (Just start, "mousemove", Just x) -> (Just start, DnDDrag x (difference position start))
-                (Just start, "mouseup", Just x) -> (Nothing, DnDDrop x (difference position start))
+                (Just start, "mouseup", Just x) -> (Nothing, DnDDrop x position)
                 (Nothing, "mousedown", Just x) -> (Just position, DnDDrag x (0, 0))
                 otherwise -> (Nothing, DnDNoEvent)
     in Signal.map snd << Signal.foldp toDnD (Nothing, DnDNoEvent) <| sig
