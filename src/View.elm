@@ -61,8 +61,15 @@ tileColorView =
 modeView : Signal.Mailbox InputMode -> Signal Html
 modeView {address, signal} =
     let onChange index = Html.Events.on "change" Html.Events.targetChecked (\_ -> Signal.message address index)
-        radio mode index = Html.input [Attr.type' "radio", Attr.checked (index == mode), onChange index] []
-        modeViewF mode = Html.div [] <| List.map (radio mode) [InputModePutTile, InputModeMove]
+        radio mode (index, id, label) =
+            Html.div []
+                [ Html.input [Attr.id id, Attr.type' "radio", Attr.checked (index == mode), onChange index] []
+                , Html.label [Attr.for id] [Html.text label]
+                ]
+        modeViewF mode = Html.div [] <| List.map (radio mode)
+            [ (InputModePutTile, "input_mode_put_tile", "put tile")
+            , (InputModeMove, "input_mode_move", "move")
+            ]
     in Signal.map modeViewF signal
 
 palette : List Collage.Form
