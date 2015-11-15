@@ -77,8 +77,8 @@ palette = Array.toList
     << Array.map (flip Collage.filled (Collage.square (toFloat tileSize)))
     <| paletteColors
 
-inputView : (Int -> MapEditor.AppInput) -> Signal.Address MapEditor.AppInput -> Html
-inputView toAction address =
+inputView : Int -> (Int -> MapEditor.AppInput) -> Signal.Address MapEditor.AppInput -> Html
+inputView value toAction address =
     let enterEventDecoder = Json.Decode.object2 (,) Html.Events.keyCode Html.Events.targetValue `Json.Decode.andThen`
             \(k, a) ->
                 case (k, String.toInt a) of
@@ -93,7 +93,7 @@ inputView toAction address =
 
         onEnter = Html.Events.on "keypress" enterEventDecoder (Signal.message address)
         onClick = Html.Events.on "click" clickEventDecoder (Signal.message address)
-        widthInput = Html.input [Attr.type' "number", onEnter, onClick] []
+        widthInput = Html.input [Attr.type' "number", onEnter, onClick, Attr.value <| toString value] []
     in Html.div [] [widthInput]
 
 view : Signal.Mailbox Int
@@ -124,8 +124,8 @@ controlView tileMb modeMb address =
             [classControlContainer]
             [ group "tiles" <| paletteView tileMb.address
             , group "tile" <| tileColorV
-            , group "width" <| inputView changeWidth address
-            , group "height" <| inputView changeHeight address
+            , group "width" <| inputView mapWidth changeWidth address
+            , group "height" <| inputView mapHeight changeHeight address
             , group "mode" <| modeV
             ]
     in Signal.map2 controlViewF (tileColorView tileMb.signal) (modeView modeMb)
